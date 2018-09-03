@@ -49,16 +49,16 @@ def main():
     parser.add_argument("-o", "--send-output", help="Send output via email", action="store_true")
     parser.add_argument("cmd", help="Command for run", nargs=1)
     parser.add_argument("argument", help="Argument for command", nargs="*")
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     retcode = None
     output = None
-    for_run = args.cmd + args.argument
+    for_run = args.cmd + args.argument + unknown
     try:
         if not args.send_output:
-            subprocess.check_call(for_run, shell=True)
+            subprocess.check_call(for_run, shell=False)
             retcode = 0
         else:
-            output = subprocess.check_output(for_run, shell=True, encoding="utf-8")
+            output = subprocess.check_output(for_run, shell=False, encoding="utf-8")
             retcode = 0
     except subprocess.CalledProcessError as error:
         retcode = error.returncode
@@ -68,11 +68,11 @@ def main():
     title = args.name and args.name or ' '.join(for_run)
     status = retcode == 0 and "SUCCESS" or "FAIL"
     subject = "Command '{0}' has finished with {1}".format(title, status)
-    body = ' '.join(for_run) + '\n'
+    body = "command '{0}' return {1}\n".format(' '.join(for_run), retcode)
     if args.send_output and output:
         body += output
 
-    send_email(subject, body)
+    #send_email(subject, body)
 
     if output:
         print(output)
