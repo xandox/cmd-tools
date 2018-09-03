@@ -5,6 +5,7 @@ import yaml
 import os
 import subprocess
 import argparse
+import socket
 from email.mime.text import MIMEText
 
 CONFIG = None
@@ -37,6 +38,12 @@ def send_email(subject, body):
         msg["From"] = config["from"]
         msg["To"] = config["to"]
         client = smtplib.SMTP(config["smtp"]["host"], config["smtp"]["port"])
+        client.ehlo()
+        if config["smtp"]["port"] == 587:
+            client.starttls()
+            client.ehlo()
+        if config["smtp"].get("login") and config["smtp"].get("password"):
+            client.login(config["smtp"]["login"], config["smtp"]["password"])
         client.send_message(msg)
         client.quit()
     except Exception as error:
@@ -65,14 +72,15 @@ def main():
         if args.send_output:
             output = error.output
     
+    hostname = socket.gethostname()
     title = args.name and args.name or ' '.join(for_run)
     status = retcode == 0 and "SUCCESS" or "FAIL"
-    subject = "Command '{0}' has finished with {1}".format(title, status)
+    subject = "[{2}] Command '{0}' has finished with {1}".format(title, status, hostname)
     body = "command '{0}' return {1}\n".format(' '.join(for_run), retcode)
     if args.send_output and output:
         body += output
 
-    #send_email(subject, body)
+    send_email(subject, body)
 
     if output:
         print(output)
